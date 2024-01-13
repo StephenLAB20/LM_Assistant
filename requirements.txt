@@ -1,0 +1,5 @@
+pure-python-adb
+pillow~=10.2.0
+easyocr~=1.7.1
+numpy~=1.26.3
+aiofiles

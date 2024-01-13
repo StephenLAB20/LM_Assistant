@@ -1,0 +1,48 @@
+{
+  "roi": {
+    "x": 340,
+    "y": 5,
+    "line_width": 790,
+    "line_height": 30
+  },
+  "devices": {
+    "emulator-5554": {
+      "commands": [
+        "ручки",
+        "rally"
+      ],
+      "rally": {
+        "inf": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "arch": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "cav": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    },
+    "emulator-5564": {
+      "commands": [
+        "ручки"
+      ]
+    },
+    "emulator-5574": {
+      "commands": []
+    }
+  }
+}
