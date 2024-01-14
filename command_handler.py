@@ -26,7 +26,7 @@ class CommandHandler:
         await asyncio.gather(
             self.add_commands_to_pending(),
             self.process_pending_commands(),
-            *[self.execute_device_commands(device) for device in self.device_command_data.keys()]
+            *[self.execute_device_commands(device, device_data) for device, device_data in self.device_command_data.items()]
         )
 
     async def add_commands_to_pending(self):
@@ -70,15 +70,15 @@ class CommandHandler:
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
 
-    async def execute_device_commands(self, device):
-        data = self.device_command_data[device]
+    async def execute_device_commands(self, device, device_data):
+        # data = self.device_command_data[device_data]
 
         while True:
-            if data['in_process'] and "ручки" in data['in_process']['text']:
-                count = data['in_process']['text'][1]
+            if device_data['in_process'] and "ручки" in device_data['in_process']['text']:
+                count = device_data['in_process']['text'][1]
                 construction = Construction(device, count)
                 await construction.start()
-                data['in_process'] = None
+                device_data['in_process'] = None
 
                 # Добавь другие условия и методы обработки команд здесь
 
