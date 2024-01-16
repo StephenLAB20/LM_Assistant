@@ -46,7 +46,7 @@ class ImageReader:
                 if 'screenshot_queue' in queues and not queues['screenshot_queue'].empty():
                     # Получаем скриншот из очереди
                     screenshot = await queues['screenshot_queue'].get()
-                    print(f"Screenshot get from device queue {device.serial}")
+                    # print(f"Screenshot get from device queue {device.serial}")
                     lang = "ru", "en"
 
                     if screenshot:
@@ -56,7 +56,7 @@ class ImageReader:
                     await asyncio.sleep(1)
 
     async def extract_text(self, device, screenshot, lang) -> (str, str):
-        print('Text extracting...')
+        # print('Text extracting...')
         start_time = time.time()
 
         try:
@@ -81,9 +81,9 @@ class ImageReader:
 
             elapsed_time = time.time() - start_time
 
-            print(f"Text extracted in {elapsed_time:.4f} seconds. Device {device.serial}")
-            print(extracted_text_1)
-            print(extracted_text_2)
+            # print(f"Text extracted in {elapsed_time:.4f} seconds. Device {device.serial}")
+            # print(extracted_text_1)
+            # print(extracted_text_2)
 
             await self.process_text(device, (extracted_text_1, extracted_text_2))
 
@@ -99,7 +99,7 @@ class ImageReader:
         # print(f"allowed_commands {allowed_commands} {device.serial}")
         for extracted_text in extracted_texts:
             concatenated_text = ' '.join(extracted_text)
-            print(f"Concatenated string: {concatenated_text}")
+            # print(f"Concatenated string: {concatenated_text}")
 
             # Проверяем, есть ли разрешенные команды в тексте
             for command in allowed_commands:
@@ -107,12 +107,13 @@ class ImageReader:
                     result = await self.regex_extractor.extract_help_command(concatenated_text)
                     if result:
                         await self.device_queues[device]['command_queue'].put({'text': result})
-                        print(f"Text put in queue for device {device.serial}: {result}")
+                        print(f"Text-command put in queue for device {device.serial}: {result}")
+                        print(f"Number of text-commands in queue for device {device.serial}: {self.device_queues[device]['command_queue'].qsize()}")
 
         # Выводим количество команд в каждой очереди для отладки
-        command_queue = self.device_queues[device].get('command_queue')
-        if command_queue:
-            print(f"Device {device.serial} - Number of commands in queue: {command_queue.qsize()}")
+        # command_queue = self.device_queues[device].get('command_queue')
+        # if command_queue:
+            # print(f"Device {device.serial} - Number of commands in queue: {command_queue.qsize()}")
 
     def crop_image(self, image: Image) -> (Image, Image):
         cropped_image_1 = image.crop(

@@ -24,58 +24,49 @@ class CommandHandler:
 
         # Запускаем асинхронные задачи
         await asyncio.gather(
-            self.add_commands_to_pending(),
-            self.process_pending_commands(),
+            *[self.add_commands_to_pending(device, device_queues) for device, device_queues in self.device_queues.items()],
+            *[self.process_pending_commands(device, device_data) for device, device_data in self.device_command_data.items()],
             *[self.execute_device_commands(device, device_data) for device, device_data in self.device_command_data.items()]
         )
 
-    async def add_commands_to_pending(self):
+    async def add_commands_to_pending(self, device, device_queues):
         while True:
-            # Проверяем наличие команд в каждой очереди для устройств
-            for device, queues in self.device_queues.items():
-                if 'command_queue' in queues and not queues['command_queue'].empty():
-                    # Получаем команду из очереди
-                    command_data = await queues['command_queue'].get()
+            if 'command_queue' in device_queues and not device_queues['command_queue'].empty():
+                # Получаем команду из очереди
+                command_data = await device_queues['command_queue'].get()
 
-                    # Проверяем, есть ли команда уже в in_process или pending
-                    if not (command_data == self.device_command_data[device]['in_process'] or command_data in
-                            self.device_command_data[device]['pending']):
-                        # Добавляем команду в очередь ожидания (pending) для соответствующего устройства
-                        self.device_command_data[device]['pending'].append(command_data)
-                        print(f"Adding command to pending for device {device.serial}: {command_data}")
-                    else:
-                        print(f"Command {command_data} already exists in pending for device {device.serial}")
-
-            # Выводим содержимое pending для каждого устройства
-            for device, data in self.device_command_data.items():
-                print(f"Pending commands for device {device.serial}: {data['pending']}")
+                # Проверяем, есть ли команда уже в in_process или pending
+                if not (command_data == self.device_command_data[device]['in_process'] or command_data in
+                        self.device_command_data[device]['pending']):
+                    # Добавляем команду в очередь ожидания (pending) для соответствующего устройства
+                    self.device_command_data[device]['pending'].append(command_data)
+                    print(f"Adding command to pending for device {device.serial}: {command_data}")
+                    # Выводим содержимое pending для каждого устройства
+                    print(f"Pending commands for device {device.serial}: {self.device_command_data[device]['pending']}")
+                else:
+                    print(f"Command {command_data} already exists in pending for device {device.serial}")
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
 
-    async def process_pending_commands(self):
+    async def process_pending_commands(self, device, device_data):
         while True:
-            # Перебираем устройства и обрабатываем их команды
-            for device, data in self.device_command_data.items():
-                if not data['in_process'] and data['pending']:
-                    # Получаем команду из очереди ожидания (pending)
-                    command_data = data['pending'].popleft()
+            print(f"def process_pending_commands {device.serial} {device_data['in_process']} {device_data['pending']}")
+            if not device_data['in_process'] and device_data['pending']:
+                # Получаем команду из очереди ожидания (pending)
+                command_data = device_data['pending'].popleft()
 
-                    # Устанавливаем команду в in_process
-                    data['in_process'] = command_data
-                    print(f"Processing command for device {device.serial}: {command_data}")
-
-            # Выводим содержимое in_process для каждого устройства
-            for device, data in self.device_command_data.items():
-                print(f"In Process commands for device {device.serial}: {data['in_process']}")
+                # Устанавливаем команду в in_process
+                device_data['in_process'] = command_data
+                print(f"Adding command to in_process for device {device.serial}: {command_data}")
+                print(f"In Process commands for device {device.serial}: {device_data['in_process']}")
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
 
     async def execute_device_commands(self, device, device_data):
-        # data = self.device_command_data[device_data]
-
         while True:
             if device_data['in_process'] and "ручки" in device_data['in_process']['text']:
                 count = device_data['in_process']['text'][1]
+                print(f"Construction class for device {device.serial}")
                 construction = Construction(device, count)
                 await construction.start()
                 device_data['in_process'] = None

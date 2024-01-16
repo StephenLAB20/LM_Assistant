@@ -21,17 +21,17 @@ class ScreenshotProvider:
             for device, queues in self.device_queues.items():
                 # Делаем скриншот
                 screenshot = await device.screencap()
-                print(f"Screenshot made for device {device.serial}")
+                # print(f"Screenshot made for device {device.serial}")
 
                 # Отправляем скриншот в очередь для дальнейшей обработки
                 await queues['screenshot_queue'].put({'image': screenshot})
-                print(f"Put screenshot in queue for device {device.serial}")
+                # print(f"Put screenshot in queue for device {device.serial}")
 
             # Выводим количество скриншотов в каждой очереди для отладки
-            for device, queues in self.device_queues.items():
-                screenshot_queue = queues.get('screenshot_queue')
-                if screenshot_queue:
-                    print(f"Device {device.serial} - Number of screenshots in queue: {screenshot_queue.qsize()}")
+            # for device, queues in self.device_queues.items():
+            #     screenshot_queue = queues.get('screenshot_queue')
+            #     if screenshot_queue:
+            #         print(f"Device {device.serial} - Number of screenshots in queue: {screenshot_queue.qsize()}")
 
             # Пауза 5 секунд перед следующим скриншотом
             await asyncio.sleep(5)

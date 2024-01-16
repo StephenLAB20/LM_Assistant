@@ -12,7 +12,7 @@ class Construction:
         self.image_info = {}
         self.device = device
         self.count = count
-        self.delay = 1
+        self.delay = 0.8
         self.load_images()
         self.process_help_command_task = None
 
@@ -46,8 +46,9 @@ class Construction:
 
         if not is_equipped:
             await self.apply_equipment()
-        else:
-            await self.execute_help_command()
+
+        await self.execute_help_command()
+        print(f"def process_help_command finished for {self.device.serial}")
 
     async def click_loupe_icon(self):
         await asyncio.sleep(self.delay)
@@ -70,7 +71,10 @@ class Construction:
             coord = await self.get_coord(template_name, template, loc, btn_offset)
 
             # Выполняем команду устройства по полученным координатам
+            print(f"loupe_icon CLICKED {self.device.serial}")
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+        else:
+            print(f"loupe_icon MISMATCH {self.device.serial}")
 
     async def click_farm_icon(self):
         await asyncio.sleep(self.delay)
@@ -97,6 +101,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"farm_icon CLICKED {self.device.serial}")
+        else:
+            print(f"farm_icon MISMATCH {self.device.serial}")
 
     async def click_primary_upgrade_btn(self):
         await asyncio.sleep(self.delay)
@@ -120,6 +127,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"primary_upgrade_btn CLICKED {self.device.serial}")
+        else:
+            print(f"primary_upgrade_btn MISMATCH {self.device.serial}")
 
     async def check_warning_icon(self):
         await asyncio.sleep(self.delay)
@@ -140,8 +150,10 @@ class Construction:
         if loc[0].size > 0:
             # Берем координаты из словаря, если они есть
             coord = await self.get_coord(template_name, template, loc, btn_offset)
+            print(f"warning_icon detected {self.device.serial}")
             return False
         else:
+            print(f"warning_icon not detected {self.device.serial}")
             return True
 
     async def click_warning_icon(self):
@@ -166,6 +178,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"warning_icon CLICKED {self.device.serial}")
+        else:
+            print(f"warning_icon MISMATCH {self.device.serial}")
 
     async def click_warning_change_btn(self):
         await asyncio.sleep(self.delay)
@@ -189,6 +204,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"warning_change_btn CLICKED {self.device.serial}")
+        else:
+            print(f"warning_change_btn MISMATCH {self.device.serial}")
 
     async def click_construction_equip_btn(self):
         await asyncio.sleep(self.delay)
@@ -211,6 +229,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"construction_equip_btn CLICKED {self.device.serial}")
+        else:
+            print(f"construction_equip_btn MISMATCH {self.device.serial}")
 
     async def click_secondary_upgrade_btn(self):
         await asyncio.sleep(self.delay)
@@ -234,6 +255,7 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"click_secondary_upgrade_btn CLICKED {self.device.serial}")
 
     async def click_help_btn(self):
         await asyncio.sleep(self.delay)
@@ -257,6 +279,7 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"click_help_btn CLICKED {self.device.serial}")
 
     async def click_cancel_btn(self):
         await asyncio.sleep(self.delay)
@@ -280,6 +303,7 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"click_cancel_btn CLICKED {self.device.serial}")
 
     async def click_confirm_cancel_btn(self):
         await asyncio.sleep(self.delay)
@@ -303,6 +327,7 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"click_confirm_cancel_btn CLICKED {self.device.serial}")
 
     async def click_exit_btn(self):
         await asyncio.sleep(self.delay)
@@ -326,6 +351,7 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"click_exit_btn CLICKED {self.device.serial}")
 
     async def check_exit_btn(self):
         await asyncio.sleep(self.delay)
@@ -352,7 +378,7 @@ class Construction:
 
     async def click_twice_exit_btn(self):
         while not await self.check_exit_btn():
-            await asyncio.sleep(self.delay)
+            # await asyncio.sleep(self.delay)
             await self.click_exit_btn()
             # await asyncio.sleep(1)  # Пауза между повторными нажатиями
 
