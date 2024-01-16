@@ -18,19 +18,18 @@ class RegexExtractor:
 
     @staticmethod
     async def extract_help_command(text):
-        pattern = re.compile(r'ручки\s*(\d+)?')
+        pattern = re.compile(r'(ручки)\s*(\d+)?')
         match = pattern.search(text)
 
         if match:
-            quantity = int(match.group(1)) if match.group(1) else None
-
-            # Условие 1: Если нет цифры, возвращаем None
-            if quantity is None:
+            quantity = int(match.group(2)) if match.group(2) else None
+            # Условие 1: Если нет группы "ручки" или группы цифр, возвращаем None
+            if not match.group(1) or quantity is None:
                 return None
 
             # Условие 2: Если цифра больше 120, возвращаем 120
-            if quantity > 120:
-                return 'ручки', 120
+            if quantity > 40:
+                return 'ручки', 40
 
             # Условие 3: Если цифра от 0 до 10, устанавливаем цифру 10
             if 0 <= quantity <= 10:

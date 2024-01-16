@@ -14,6 +14,7 @@ class CommandHandler:
         # Инициализируем структуру данных для каждого устройства
         for device in devices:
             self.device_command_data[device] = {
+                'previous_command': None,  # Предыдущая выполненная команда
                 'in_process': None,  # Текущая выполняемая команда
                 'pending': deque()  # Очередь ожидающих выполнения команд
             }
@@ -50,7 +51,6 @@ class CommandHandler:
 
     async def process_pending_commands(self, device, device_data):
         while True:
-            print(f"def process_pending_commands {device.serial} {device_data['in_process']} {device_data['pending']}")
             if not device_data['in_process'] and device_data['pending']:
                 # Получаем команду из очереди ожидания (pending)
                 command_data = device_data['pending'].popleft()
@@ -58,7 +58,6 @@ class CommandHandler:
                 # Устанавливаем команду в in_process
                 device_data['in_process'] = command_data
                 print(f"Adding command to in_process for device {device.serial}: {command_data}")
-                print(f"In Process commands for device {device.serial}: {device_data['in_process']}")
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
 
@@ -69,6 +68,7 @@ class CommandHandler:
                 print(f"Construction class for device {device.serial}")
                 construction = Construction(device, count)
                 await construction.start()
+                await construction.stop()
                 device_data['in_process'] = None
 
                 # Добавь другие условия и методы обработки команд здесь

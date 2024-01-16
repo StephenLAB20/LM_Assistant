@@ -42,9 +42,9 @@ class Construction:
 
     async def process_help_command(self):
         print(f"Starting checking equipment for {self.device.serial}")
-        is_equipped = await self.check_equipment()
+        # is_equipped = await self.check_equipment()
 
-        if not is_equipped:
+        while not await self.check_equipment():
             await self.apply_equipment()
 
         await self.execute_help_command()
@@ -134,26 +134,30 @@ class Construction:
     async def check_warning_icon(self):
         await asyncio.sleep(self.delay)
         # Имя шаблона в папке шаблонов
-        template_name = 'warning_icon'
+        template_warning_icon_name = 'warning_icon'
+        template_secondary_upgrade_btn_name = 'secondary_upgrade_btn'
         # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
         btn_offset = (0, 0)
         # Берем шаблон из словаря
-        template = self.image_info[template_name]['template']
+        warning_icon_template = self.image_info[template_warning_icon_name]['template']
+        secondary_upgrade_btn_template = self.image_info[template_secondary_upgrade_btn_name]['template']
 
         # Получаем скриншот от устройства
         screenshot = await self.device.screencap()
 
         # Ищем шаблон на скриншоте и возвращаем количество совпадений
-        loc = await self.get_template_match_locations(screenshot, template)
+        warning_icon_loc = await self.get_template_match_locations(screenshot, warning_icon_template)
+        secondary_upgrade_btn_warning_icon_loc = await self.get_template_match_locations(screenshot, secondary_upgrade_btn_template)
 
         # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
-        if loc[0].size > 0:
+        if warning_icon_loc[0].size > 0 and secondary_upgrade_btn_warning_icon_loc[0].size > 0:
             # Берем координаты из словаря, если они есть
-            coord = await self.get_coord(template_name, template, loc, btn_offset)
-            print(f"warning_icon detected {self.device.serial}")
+            coord = await self.get_coord(template_warning_icon_name, warning_icon_template, warning_icon_loc, btn_offset)
+            coord = await self.get_coord(template_secondary_upgrade_btn_name, secondary_upgrade_btn_template, secondary_upgrade_btn_warning_icon_loc, btn_offset)
+            print(f"warning_icon and secondary_upgrade_btn detected {self.device.serial}")
             return False
         else:
-            print(f"warning_icon not detected {self.device.serial}")
+            print(f"warning_icon and secondary_upgrade_btn not detected {self.device.serial}")
             return True
 
     async def click_warning_icon(self):
@@ -427,9 +431,9 @@ class Construction:
             await self.click_cancel_btn()
             await self.click_confirm_cancel_btn()
 
-            # await asyncio.sleep(0)
+            await asyncio.sleep(self.delay)
         await self.click_twice_exit_btn()
-        # await asyncio.sleep(0)
+        await asyncio.sleep(self.delay)
 
     async def start(self):
         self.process_help_command_task = await asyncio.create_task(self.process_help_command())
