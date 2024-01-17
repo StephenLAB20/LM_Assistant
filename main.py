@@ -3,7 +3,6 @@ import json
 import time
 
 from adb_connection import AdbConnection
-from screenshot_provider import ScreenshotProvider
 from image_reader import ImageReader
 from command_handler import CommandHandler
 
@@ -30,25 +29,21 @@ async def main():
                 device_queues[device] = {}
 
         # Создаем экземпляры классов, передавая общий словарь
-        screenshot_provider = ScreenshotProvider(device_queues)
         image_reader = ImageReader(CONFIG_FILE, device_queues)
         command_handler = CommandHandler(device_queues)
 
         try:
             # Запускаем задачи
-            screenshot_provider.start()
             image_reader.start()
             command_handler.start()
 
             # Ожидаем завершения всех задач
-            await asyncio.gather(screenshot_provider.screenshot_task,
-                                 image_reader.image_reader_task, command_handler.command_handler_task)
+            await asyncio.gather(image_reader.image_reader_task, command_handler.command_handler_task)
 
         except asyncio.CancelledError:
             pass
         finally:
             # Останавливаем задачи перед выходом
-            await screenshot_provider.stop()
             await image_reader.stop()
             await command_handler.stop()
 
