@@ -380,6 +380,29 @@ class Construction:
         else:
             return True
 
+    async def check_secondary_upgrade_btn(self):
+        await asyncio.sleep(self.delay)
+        # Имя шаблона в папке шаблонов
+        template_name = 'secondary_upgrade_btn'
+        # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
+        btn_offset = (0, 0)
+        # Берем шаблон из словаря
+        template = self.image_info[template_name]['template']
+
+        # Получаем скриншот от устройства
+        screenshot = await self.device.screencap()
+
+        # Ищем шаблон на скриншоте и возвращаем количество совпадений
+        loc = await self.get_template_match_locations(screenshot, template)
+
+        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
+        if loc[0].size > 0:
+            # Берем координаты из словаря, если они есть
+            coord = await self.get_coord(template_name, template, loc, btn_offset)
+            return True
+        else:
+            return False
+
     async def click_twice_exit_btn(self):
         while not await self.check_exit_btn():
             # await asyncio.sleep(self.delay)
@@ -421,19 +444,23 @@ class Construction:
             self.image_info[template_name]['coord'] = coord
         return coord
 
+    async def process_help_algorithm(self):
+        await self.click_secondary_upgrade_btn()
+        await self.click_help_btn()
+        await self.click_cancel_btn()
+        await self.click_confirm_cancel_btn()
+
     async def execute_help_command(self):
         print(f"Executing help command for device {self.device.serial}...")
 
         for i in range(self.count + 1):
             print(f"Executing help command for device {self.device.serial}..........{i}")
-            await self.click_secondary_upgrade_btn()
-            await self.click_help_btn()
-            await self.click_cancel_btn()
-            await self.click_confirm_cancel_btn()
+            await self.process_help_algorithm()
 
-            await asyncio.sleep(self.delay)
+        while not await self.check_secondary_upgrade_btn():
+            print(f"Before close doing again process_help_algorithm() for {self.device.serial}")
+            await self.process_help_algorithm()
         await self.click_twice_exit_btn()
-        await asyncio.sleep(self.delay)
 
     async def start(self):
         self.process_help_command_task = await asyncio.create_task(self.process_help_command())

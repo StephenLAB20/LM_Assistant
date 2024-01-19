@@ -10,7 +10,9 @@ CONFIG_FILE = "config.json"
 
 
 async def main():
-    allowed_devices = await load_config()
+    config_obj = await load_config()
+    allowed_devices = list(config_obj.get("devices", {}).keys())
+
     num_devices = int(input("Enter the number of devices to connect: "))
 
     adb_connection = AdbConnection()
@@ -29,7 +31,7 @@ async def main():
                 device_queues[device] = {}
 
         # Создаем экземпляры классов, передавая общий словарь
-        image_reader = ImageReader(CONFIG_FILE, device_queues)
+        image_reader = ImageReader(config_obj, device_queues)
         command_handler = CommandHandler(device_queues)
 
         try:
@@ -51,18 +53,13 @@ async def main():
 async def load_config():
     print('Loading config file...')
     start_time = time.time()
-    with open(CONFIG_FILE, 'r') as file:
+
+    with open(CONFIG_FILE, 'r', encoding="utf8") as file:
         config = json.load(file)
-
-    # Получаем список устройств
-    devices_config = config.get("devices", {})
-
-    # Пример получения allowed_devices
-    allowed_devices = list(devices_config.keys())
 
     elapsed_time = time.time() - start_time
     print(f"Config file loaded in {elapsed_time:.4f} seconds.")
-    return allowed_devices
+    return config
 
 
 if __name__ == '__main__':

@@ -3,16 +3,19 @@ import re
 
 class RegexExtractor:
     @staticmethod
-    async def extract_coordinates(text):
-        pattern = re.compile(r'(\w+)\s(\d+)\sур\.\s(\w+):(\d+)\s(\w+):(\d+)\s(\w+):(\d+)')
+    async def extract_rally_command(text):
+        pattern = re.compile(r'Бастион хаоса ([1-6]) ур\..* (\w+)$')
         match = pattern.search(text)
 
         if match:
-            item = match.group(1)
-            level = int(match.group(2))
-            key1, value1, key2, value2, key3, value3 = match.groups()
-            coordinates = tuple(int(value) for value in (value1, value2, value3))
-            return {'item': item, 'level': level, 'coordinates': coordinates}
+            level = int(match.group(1))
+            unit_type = match.group(2)
+
+            valid_levels = range(1, 7)
+            valid_unit_types = ['пехи', 'луки', 'кони']
+
+            if level in valid_levels and unit_type in valid_unit_types:
+                return level, unit_type
 
         return None
 

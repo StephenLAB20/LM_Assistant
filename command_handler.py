@@ -1,14 +1,20 @@
 import asyncio
+import time
 from collections import deque
 from construction import Construction
+from rally import Rally
 
 
 class CommandHandler:
     def __init__(self, device_queues):
+        print('CommandHandler Class initializing...')
+        start_time = time.time()
         self.device_queues = device_queues
         self.command_handler_task = None
         self.device_command_data = {}  # Словарь для хранения данных по каждому устройству
         # self.constructions = {}  # Добавлен словарь для хранения Construction
+        elapsed_time = time.time() - start_time
+        print(f"CommandHandler Class initialized in {elapsed_time:.4f} seconds.")
 
     async def setup(self, devices):
         # Инициализируем структуру данных для каждого устройства
@@ -19,7 +25,7 @@ class CommandHandler:
                 'pending': deque()  # Очередь ожидающих выполнения команд
             }
 
-    async def handle_commands(self):
+    async def handle_command_handler_tasks(self):
         # Выполняем сборку перед началом работы
         await self.setup(self.device_queues.keys())
 
@@ -71,6 +77,14 @@ class CommandHandler:
                 await construction.stop()
                 device_data['in_process'] = None
 
+            if device_data['in_process'] and "пехи" in device_data['in_process']['text']:
+                level, unit_type = device_data['in_process']['text']
+                print(f"Rally class for device {device.serial}")
+                rally = Rally(device, level, unit_type)
+                await rally.start()
+                await rally.stop()
+                device_data['in_process'] = None
+
                 # Добавь другие условия и методы обработки команд здесь
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
@@ -78,8 +92,8 @@ class CommandHandler:
     def start(self):
         # Запуск асинхронной задачи
         print("Task started for command_handler_task")
-        self.command_handler_task = asyncio.create_task(self.handle_commands())
-        return self.handle_commands  # Возвращаем созданную задачу
+        self.command_handler_task = asyncio.create_task(self.handle_command_handler_tasks())
+        return self.handle_command_handler_tasks  # Возвращаем созданную задачу
 
     async def stop(self):
         # Остановка асинхронной задачи

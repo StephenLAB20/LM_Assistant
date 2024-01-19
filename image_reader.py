@@ -1,4 +1,3 @@
-import json
 import time
 import io
 import numpy as np
@@ -9,14 +8,14 @@ from regex_extractor import RegexExtractor
 
 
 class ImageReader:
-    def __init__(self, config_file: str, device_queues):
-        print('Class initializing...')
+    def __init__(self, config_obj, device_queues):
+        print('ImageReader Class initializing...')
         start_time = time.time()
         self.lang = ["ru", "en"]
         self.device_queues = device_queues
         self.roi_config = None
         self.allowed_commands = None
-        self.config_file = config_file
+        self.config_obj = config_obj
         self.reader = None
         self.top_left_1 = None
         self.bottom_right_1 = None
@@ -25,11 +24,11 @@ class ImageReader:
         self.image_reader_task = None
         self.regex_extractor = RegexExtractor()
         elapsed_time = time.time() - start_time
-        print(f"Class initialized in {elapsed_time:.4f} seconds.")
+        print(f"ImageReader Class initialized in {elapsed_time:.4f} seconds.")
 
     async def setup(self, devices):
         # Загружаем общий конфиг
-        await self.load_config()
+        await self.apply_config()
         self.reader = easyocr.Reader(self.lang)
 
         # Собираем все очереди от устройств
@@ -110,7 +109,13 @@ class ImageReader:
                     # Проверяем, есть ли разрешенные команды в тексте
                     for command in allowed_commands:
                         if command.lower() in concatenated_text.lower():
-                            result = await self.regex_extractor.extract_help_command(concatenated_text)
+                            if command == "ручки":
+                                result = await self.regex_extractor.extract_help_command(concatenated_text)
+                            elif command == "пехи":
+                                result = await self.regex_extractor.extract_rally_command(concatenated_text)
+                            else:
+                                result = None
+
                             if result:
                                 await device_queues['command_queue'].put({'text': result})
                                 print(f"Text-command put in queue for device {device.serial}: {result}")
@@ -140,25 +145,23 @@ class ImageReader:
             self.top_left_2 = (x, y + line_height)
             self.bottom_right_2 = (x + line_width, y + 2 * line_height)
 
-    async def load_config(self):
-        print('Loading config file...')
+    async def apply_config(self):
+        print('Applying config file...')
         start_time = time.time()
-        with open(self.config_file, 'r', encoding="utf8") as file:
-            config = json.load(file)
 
         # Загрузка общих параметров конфигурации
-        self.roi_config = config.get('roi')
+        self.roi_config = self.config_obj.get('roi')
         self.calculate_roi_dimensions()
 
         # Загрузка команд для каждого устройства
-        devices_config = config.get('devices', {})
+        devices_config = self.config_obj.get('devices', {})
         self.allowed_commands = {}
         for device, device_data in devices_config.items():
             commands = device_data.get('commands', [])
             self.allowed_commands[device] = commands
 
         elapsed_time = time.time() - start_time
-        print(f"Config file loaded in {elapsed_time:.4f} seconds.")
+        print(f"Config file applied in {elapsed_time:.4f} seconds.")
 
     def start(self):
         # Запуск асинхронной задачи
