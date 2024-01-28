@@ -22,30 +22,38 @@ class Construction:
                 image_name = os.path.splitext(filename)[0]
                 template_path = os.path.join(self.image_folder, filename)
 
-                # Загрузка шаблона
+                # Преобразование шаблона в ч\б
                 template = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
 
                 # Добавление в словарь
                 self.image_info[image_name] = {'template': template, 'coord': None}
 
-    async def check_equipment(self):
+    async def check_warning(self):
         await self.click_loupe_icon()
         await self.click_farm_icon()
         await self.click_primary_upgrade_btn()
-        is_equipped = await self.check_warning_icon()
-        return is_equipped
+        is_warning_clicked = await self.click_warning_icon()
+        return is_warning_clicked
 
     async def apply_equipment(self):
-        await self.click_warning_icon()
         await self.click_warning_change_btn()
-        await self.click_construction_equip_btn()
+        is_equipped = await self.click_construction_equip_btn()
+        return is_equipped
 
     async def process_help_command(self):
         print(f"Starting checking equipment for {self.device.serial}")
-        # is_equipped = await self.check_equipment()
+        is_equipped = False
 
-        while not await self.check_equipment():
-            await self.apply_equipment()
+        while not is_equipped:
+            is_warning_clicked = await self.check_warning()
+
+            if is_warning_clicked:
+                is_equipped = await self.apply_equipment()
+            else:
+                is_equipped = True
+
+        # while not await self.check_equipment():
+        #     await self.apply_equipment()
 
         await self.execute_help_command()
         print(f"def process_help_command finished for {self.device.serial}")
@@ -71,8 +79,8 @@ class Construction:
             coord = await self.get_coord(template_name, template, loc, btn_offset)
 
             # Выполняем команду устройства по полученным координатам
-            print(f"loupe_icon CLICKED {self.device.serial}")
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"loupe_icon CLICKED {self.device.serial}")
         else:
             print(f"loupe_icon MISMATCH {self.device.serial}")
 
@@ -131,35 +139,6 @@ class Construction:
         else:
             print(f"primary_upgrade_btn MISMATCH {self.device.serial}")
 
-    async def check_warning_icon(self):
-        await asyncio.sleep(self.delay)
-        # Имя шаблона в папке шаблонов
-        template_warning_icon_name = 'warning_icon'
-        template_secondary_upgrade_btn_name = 'secondary_upgrade_btn'
-        # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
-        btn_offset = (0, 0)
-        # Берем шаблон из словаря
-        warning_icon_template = self.image_info[template_warning_icon_name]['template']
-        secondary_upgrade_btn_template = self.image_info[template_secondary_upgrade_btn_name]['template']
-
-        # Получаем скриншот от устройства
-        screenshot = await self.device.screencap()
-
-        # Ищем шаблон на скриншоте и возвращаем количество совпадений
-        warning_icon_loc = await self.get_template_match_locations(screenshot, warning_icon_template)
-        secondary_upgrade_btn_warning_icon_loc = await self.get_template_match_locations(screenshot, secondary_upgrade_btn_template)
-
-        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
-        if warning_icon_loc[0].size > 0 and secondary_upgrade_btn_warning_icon_loc[0].size > 0:
-            # Берем координаты из словаря, если они есть
-            coord = await self.get_coord(template_warning_icon_name, warning_icon_template, warning_icon_loc, btn_offset)
-            coord = await self.get_coord(template_secondary_upgrade_btn_name, secondary_upgrade_btn_template, secondary_upgrade_btn_warning_icon_loc, btn_offset)
-            print(f"warning_icon and secondary_upgrade_btn detected {self.device.serial}")
-            return False
-        else:
-            print(f"warning_icon and secondary_upgrade_btn not detected {self.device.serial}")
-            return True
-
     async def click_warning_icon(self):
         await asyncio.sleep(self.delay)
         # Имя шаблона в папке шаблонов
@@ -183,8 +162,10 @@ class Construction:
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
             print(f"warning_icon CLICKED {self.device.serial}")
+            return True
         else:
             print(f"warning_icon MISMATCH {self.device.serial}")
+            return False
 
     async def click_warning_change_btn(self):
         await asyncio.sleep(self.delay)
@@ -234,8 +215,10 @@ class Construction:
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
             print(f"construction_equip_btn CLICKED {self.device.serial}")
+            return True
         else:
             print(f"construction_equip_btn MISMATCH {self.device.serial}")
+            return False
 
     async def click_secondary_upgrade_btn(self):
         await asyncio.sleep(self.delay)
@@ -332,9 +315,12 @@ class Construction:
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
             print(f"click_confirm_cancel_btn CLICKED {self.device.serial}")
+            return True
+        else:
+            return False
 
     async def click_exit_btn(self):
-        await asyncio.sleep(self.delay)
+        has_exit_btn = True
         # Имя шаблона в папке шаблонов
         template_name = 'exit_btn'
         # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
@@ -342,72 +328,26 @@ class Construction:
         # Берем шаблон из словаря
         template = self.image_info[template_name]['template']
 
-        # Получаем скриншот от устройства
-        screenshot = await self.device.screencap()
+        while has_exit_btn:
+            await asyncio.sleep(self.delay)
+            # Получаем скриншот от устройства
+            screenshot = await self.device.screencap()
 
-        # Ищем шаблон на скриншоте и возвращаем количество совпадений
-        loc = await self.get_template_match_locations(screenshot, template)
+            # Ищем шаблон на скриншоте и возвращаем количество совпадений
+            loc = await self.get_template_match_locations(screenshot, template)
 
-        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
-        if loc[0].size > 0:
-            # Берем координаты из словаря, если они есть
-            coord = await self.get_coord(template_name, template, loc, btn_offset)
+            # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
+            if loc[0].size > 0:
+                # Берем координаты из словаря, если они есть
+                coord = await self.get_coord(template_name, template, loc, btn_offset)
 
-            # Выполняем команду устройства по полученным координатам
-            await self.device.shell(f"input tap {coord[0]} {coord[1]}")
-            print(f"click_exit_btn CLICKED {self.device.serial}")
-
-    async def check_exit_btn(self):
-        await asyncio.sleep(self.delay)
-        # Имя шаблона в папке шаблонов
-        template_name = 'exit_btn'
-        # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
-        btn_offset = (0, 0)
-        # Берем шаблон из словаря
-        template = self.image_info[template_name]['template']
-
-        # Получаем скриншот от устройства
-        screenshot = await self.device.screencap()
-
-        # Ищем шаблон на скриншоте и возвращаем количество совпадений
-        loc = await self.get_template_match_locations(screenshot, template)
-
-        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
-        if loc[0].size > 0:
-            # Берем координаты из словаря, если они есть
-            coord = await self.get_coord(template_name, template, loc, btn_offset)
-            return False
-        else:
-            return True
-
-    async def check_secondary_upgrade_btn(self):
-        await asyncio.sleep(self.delay)
-        # Имя шаблона в папке шаблонов
-        template_name = 'secondary_upgrade_btn'
-        # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
-        btn_offset = (0, 0)
-        # Берем шаблон из словаря
-        template = self.image_info[template_name]['template']
-
-        # Получаем скриншот от устройства
-        screenshot = await self.device.screencap()
-
-        # Ищем шаблон на скриншоте и возвращаем количество совпадений
-        loc = await self.get_template_match_locations(screenshot, template)
-
-        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
-        if loc[0].size > 0:
-            # Берем координаты из словаря, если они есть
-            coord = await self.get_coord(template_name, template, loc, btn_offset)
-            return True
-        else:
-            return False
-
-    async def click_twice_exit_btn(self):
-        while not await self.check_exit_btn():
-            # await asyncio.sleep(self.delay)
-            await self.click_exit_btn()
-            # await asyncio.sleep(1)  # Пауза между повторными нажатиями
+                # Выполняем команду устройства по полученным координатам
+                await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+                has_exit_btn = True
+                print(f"exit_btn CLICKED {self.device.serial}")
+            else:
+                has_exit_btn = False
+                print(f"exit_btn MISMATCH {self.device.serial}")
 
     async def calculate_coord(self, loc, template):
         # Отмечаем совпадающую область на изображении (можно убрать в боевом коде)
@@ -439,7 +379,7 @@ class Construction:
         # Если координаты отсутствуют, получаем их и сохраняем в словарь
         if coord is None:
             coord = await self.calculate_coord(loc, template)
-            # Добавляем 500 к x-координате, так как шаблон взят левее самой кнопки (кнопка мигает, изменяет цвет)
+            # Добавляем отступы к координатам, если нажимать нужно левее\правее шаблона
             coord = (coord[0] + btn_offset[0], coord[1] + btn_offset[1])
             self.image_info[template_name]['coord'] = coord
         return coord
@@ -448,19 +388,21 @@ class Construction:
         await self.click_secondary_upgrade_btn()
         await self.click_help_btn()
         await self.click_cancel_btn()
-        await self.click_confirm_cancel_btn()
+        is_finished = await self.click_confirm_cancel_btn()
+        return is_finished
 
     async def execute_help_command(self):
         print(f"Executing help command for device {self.device.serial}...")
+        is_finished = False
 
         for i in range(self.count + 1):
             print(f"Executing help command for device {self.device.serial}..........{i}")
-            await self.process_help_algorithm()
+            is_finished = await self.process_help_algorithm()
 
-        while not await self.check_secondary_upgrade_btn():
+        while not is_finished:
             print(f"Before close doing again process_help_algorithm() for {self.device.serial}")
             await self.process_help_algorithm()
-        await self.click_twice_exit_btn()
+        await self.click_exit_btn()
 
     async def start(self):
         self.process_help_command_task = await asyncio.create_task(self.process_help_command())
