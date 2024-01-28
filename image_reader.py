@@ -109,7 +109,7 @@ class ImageReader:
                     # Проверяем, есть ли разрешенные команды в тексте
                     for command in allowed_commands:
                         if command.lower() in concatenated_text.lower():
-                            if command == "ручки":
+                            if command == "ручки" or command == "лапки":
                                 result = await self.regex_extractor.extract_help_command(concatenated_text)
                             elif command == "пехи":
                                 result = await self.regex_extractor.extract_rally_command(concatenated_text)

@@ -21,11 +21,12 @@ class RegexExtractor:
 
     @staticmethod
     async def extract_help_command(text):
-        pattern = re.compile(r'(ручки)\s*(\d+)?')
+        pattern = re.compile(r'((ручки)|(лапки))\s*(\d+)?', re.IGNORECASE)
         match = pattern.search(text)
 
         if match:
-            quantity = int(match.group(2)) if match.group(2) else None
+            quantity = int(match.group(4)) if match.group(4) else None
+            item_type = match.group(2) or match.group(3)  # Выбираем соответствующую группу
             # Условие 1: Если нет группы "ручки" или группы цифр, возвращаем None
             if not match.group(1) or quantity is None:
                 return None

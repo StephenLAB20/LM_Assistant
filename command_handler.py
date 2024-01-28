@@ -2,6 +2,7 @@ import asyncio
 import time
 from collections import deque
 from construction import Construction
+from message_manager import MessageManager, MessageType
 from rally import Rally
 
 
@@ -72,9 +73,12 @@ class CommandHandler:
             if device_data['in_process'] and "ручки" in device_data['in_process']['text']:
                 count = device_data['in_process']['text'][1]
                 print(f"Construction class for device {device.serial}")
+                message_manager = MessageManager(device)
+                await message_manager.send_message(MessageType.START)
                 construction = Construction(device, count)
                 await construction.start()
                 await construction.stop()
+                await message_manager.send_message(MessageType.FINISH)
                 device_data['in_process'] = None
 
             if device_data['in_process'] and "пехи" in device_data['in_process']['text']:

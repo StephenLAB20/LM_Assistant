@@ -9,7 +9,7 @@
     "emulator-5554": {
       "commands": [
         "ручки",
-        "rally"
+        "лапки"
       ],
       "rally": {
         "inf": [
@@ -38,8 +38,6 @@
     },
     "emulator-5564": {
       "commands": [
-        "ручки",
-        "пехи"
       ]
     },
     "emulator-5574": {
