@@ -68,6 +68,7 @@ class CommandHandler:
 
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
 
+    # TODO make list for construction, rally, message_manager, etc...to not multiply new objects
     async def execute_device_commands(self, device, device_data):
         while True:
             if device_data['in_process'] and "ручки" in device_data['in_process']['text']:

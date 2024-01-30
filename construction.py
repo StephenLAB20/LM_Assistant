@@ -40,23 +40,34 @@ class Construction:
         is_equipped = await self.click_construction_equip_btn()
         return is_equipped
 
+    async def prepare_construction(self):
+        await self.click_loupe_icon()
+        await self.click_farm_icon()
+        is_prepared = await self.click_primary_upgrade_btn()
+        return is_prepared
+
     async def process_help_command(self):
-        print(f"Starting checking equipment for {self.device.serial}")
-        is_equipped = False
+        # is_equipped = False
+        #
+        # while not is_equipped:
+        #     is_warning_clicked = await self.check_warning()
+        #
+        #     if is_warning_clicked:
+        #         is_equipped = await self.apply_equipment()
+        #     else:
+        #         is_equipped = True
 
-        while not is_equipped:
-            is_warning_clicked = await self.check_warning()
-
-            if is_warning_clicked:
-                is_equipped = await self.apply_equipment()
-            else:
-                is_equipped = True
+        # new algorithm without changing equipment
+        print(f"Preparing construction for {self.device.serial}")
+        is_prepared = False
+        while not is_prepared:
+            is_prepared = await self.prepare_construction()
 
         # while not await self.check_equipment():
         #     await self.apply_equipment()
 
         await self.execute_help_command()
-        print(f"def process_help_command finished for {self.device.serial}")
+        print(f"Construction finished for {self.device.serial}")
 
     async def click_loupe_icon(self):
         await asyncio.sleep(self.delay)
@@ -136,8 +147,10 @@ class Construction:
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
             print(f"primary_upgrade_btn CLICKED {self.device.serial}")
+            return True
         else:
             print(f"primary_upgrade_btn MISMATCH {self.device.serial}")
+            return False
 
     async def click_warning_icon(self):
         await asyncio.sleep(self.delay)
@@ -242,7 +255,35 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
-            print(f"click_secondary_upgrade_btn CLICKED {self.device.serial}")
+            print(f"secondary_upgrade_btn CLICKED {self.device.serial}")
+        else:
+            print(f"secondary_upgrade_btn MISMATCH {self.device.serial}")
+
+    async def click_instant_upgrade_btn(self):
+        await asyncio.sleep(self.delay)
+        # Имя шаблона в папке шаблонов
+        template_name = 'instant_upgrade_btn'
+        # Отступ шаблона к координатам (x, y) самой кнопки: взять влево(-), вправо (+)
+        btn_offset = (0, 0)
+        # Берем шаблон из словаря
+        template = self.image_info[template_name]['template']
+
+        # Получаем скриншот от устройства
+        screenshot = await self.device.screencap()
+
+        # Ищем шаблон на скриншоте и возвращаем количество совпадений
+        loc = await self.get_template_match_locations(screenshot, template)
+
+        # Если есть хотя бы одно совпадение, получаем координаты центра и выполняем команду устройства
+        if loc[0].size > 0:
+            # Берем координаты из словаря, если они есть
+            coord = await self.get_coord(template_name, template, loc, btn_offset)
+
+            # Выполняем команду устройства по полученным координатам
+            await self.device.shell(f"input tap {coord[0]} {coord[1]}")
+            print(f"instant_upgrade_btn CLICKED {self.device.serial}")
+        else:
+            print(f"instant_upgrade_btn MISMATCH {self.device.serial}")
 
     async def click_help_btn(self):
         await asyncio.sleep(self.delay)
@@ -266,7 +307,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
-            print(f"click_help_btn CLICKED {self.device.serial}")
+            print(f"help_btn CLICKED {self.device.serial}")
+        else:
+            print(f"help_btn MISMATCH {self.device.serial}")
 
     async def click_cancel_btn(self):
         await asyncio.sleep(self.delay)
@@ -290,7 +333,9 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
-            print(f"click_cancel_btn CLICKED {self.device.serial}")
+            print(f"cancel_btn CLICKED {self.device.serial}")
+        else:
+            print(f"cancel_btn MISMATCH {self.device.serial}")
 
     async def click_confirm_cancel_btn(self):
         await asyncio.sleep(self.delay)
@@ -314,9 +359,10 @@ class Construction:
 
             # Выполняем команду устройства по полученным координатам
             await self.device.shell(f"input tap {coord[0]} {coord[1]}")
-            print(f"click_confirm_cancel_btn CLICKED {self.device.serial}")
+            print(f"confirm_cancel_btn CLICKED {self.device.serial}")
             return True
         else:
+            print(f"confirm_cancel_btn MISMATCH {self.device.serial}")
             return False
 
     async def click_exit_btn(self):
@@ -386,13 +432,14 @@ class Construction:
 
     async def process_help_algorithm(self):
         await self.click_secondary_upgrade_btn()
+        await self.click_instant_upgrade_btn()
         await self.click_help_btn()
         await self.click_cancel_btn()
         is_finished = await self.click_confirm_cancel_btn()
         return is_finished
 
     async def execute_help_command(self):
-        print(f"Executing help command for device {self.device.serial}...")
+        print(f"Start executing help command for device {self.device.serial}...")
         is_finished = False
 
         for i in range(self.count + 1):
@@ -400,7 +447,7 @@ class Construction:
             is_finished = await self.process_help_algorithm()
 
         while not is_finished:
-            print(f"Before close doing again process_help_algorithm() for {self.device.serial}")
+            print(f"Ensuring completion of process_help_algorithm() for {self.device.serial}")
             await self.process_help_algorithm()
         await self.click_exit_btn()
 
