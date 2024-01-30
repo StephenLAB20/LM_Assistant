@@ -13,7 +13,7 @@ class CommandHandler:
         self.device_queues = device_queues
         self.command_handler_task = None
         self.device_command_data = {}  # Словарь для хранения данных по каждому устройству
-        # self.constructions = {}  # Добавлен словарь для хранения Construction
+        self.device_actions = {}  # Общий словарь для управления объектами по устройствам
         elapsed_time = time.time() - start_time
         print(f"CommandHandler Class initialized in {elapsed_time:.4f} seconds.")
 
@@ -71,9 +71,22 @@ class CommandHandler:
     # TODO make list for construction, rally, message_manager, etc...to not multiply new objects
     async def execute_device_commands(self, device, device_data):
         while True:
+            if device not in self.device_actions:
+                # Создаем объекты только при первом упоминании устройства
+                self.device_actions[device] = {
+                    'message_manager': None,
+                    'construction': None
+                }
+
             if device_data['in_process'] and "ручки" in device_data['in_process']['text']:
                 count = device_data['in_process']['text'][1]
-                print(f"Construction class for device {device.serial}")
+                # Инициализация объекта MessageManager, если он еще не был создан
+                if self.device_actions[device]['message_manager'] is None:
+                    self.device_actions[device]['message_manager'] = MessageManager(device)
+                # Инициализация объекта Construction, если он еще не был создан
+                if self.device_actions[device]['construction'] is None:
+                    self.device_actions[device]['construction'] = Construction(device, count)
+
                 message_manager = MessageManager(device)
                 await message_manager.send_message(MessageType.START)
                 construction = Construction(device, count)
@@ -82,6 +95,7 @@ class CommandHandler:
                 await message_manager.send_message(MessageType.FINISH)
                 device_data['in_process'] = None
 
+            # TODO modify rally algorythm
             if device_data['in_process'] and "пехи" in device_data['in_process']['text']:
                 level, unit_type = device_data['in_process']['text']
                 print(f"Rally class for device {device.serial}")

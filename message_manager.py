@@ -9,7 +9,7 @@ from enum import Enum
 
 class MessageType(Enum):
     START = "OK! Please press help. Starting in few seconds..."
-    FINISH = "Finished! If you need more, please ask me for help again."
+    FINISH = "DONE! If you need more, please ask me for help again."
 
 
 class MessageManager:
