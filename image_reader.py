@@ -22,7 +22,7 @@ class ImageReader:
         self.top_left_2 = None
         self.bottom_right_2 = None
         self.image_reader_task = None
-        self.regex_extractor = RegexExtractor()
+        self.regex_extractor = None
         elapsed_time = time.time() - start_time
         print(f"ImageReader Class initialized in {elapsed_time:.4f} seconds.")
 
@@ -30,6 +30,7 @@ class ImageReader:
         # Загружаем общий конфиг
         await self.apply_config()
         self.reader = easyocr.Reader(self.lang)
+        self.regex_extractor = RegexExtractor()
 
         # Собираем все очереди от устройств
         for device in devices:
@@ -52,9 +53,11 @@ class ImageReader:
             await asyncio.sleep(5)  # Ждем 5 секунд между итерациями
 
             try:
-                screenshot = await device.screencap()
-                img = Image.open(io.BytesIO(screenshot))
-                cropped_images = self.crop_image(img)
+                with Image.open(io.BytesIO(await device.screencap())) as img:
+                    cropped_images = await self.crop_image(img)
+
+                # img = Image.open(io.BytesIO(self.screenshot))
+                # cropped_images = self.crop_image(img)
 
                 # Добавляем обрезанные изображения в очередь
                 await device_queues['cropped_images_queue'].put(cropped_images)
@@ -95,34 +98,36 @@ class ImageReader:
 
         while True:
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
+            # Получаем кортеж текстов из очереди
+            extracted_text = await device_queues['extracted_text_queue'].get()
 
             # Проверяем наличие очереди и её не пустоту
-            if 'extracted_text_queue' in device_queues and not device_queues['extracted_text_queue'].empty():
-                # Получаем кортеж текстов из очереди
-                extracted_text = await device_queues['extracted_text_queue'].get()
+            # if 'extracted_text_queue' in device_queues and not device_queues['extracted_text_queue'].empty():
+            #     # Получаем кортеж текстов из очереди
+            #     extracted_text = await device_queues['extracted_text_queue'].get()
 
-                # Обработка каждой строки текста
-                for text_line in extracted_text:
-                    concatenated_text = ' '.join(text_line)
-                    # print(f"Concatenated string: {concatenated_text}")
+            # Обработка каждой строки текста
+            for text_line in extracted_text:
+                concatenated_text = ' '.join(text_line).lower()  # Приводим к нижнему регистру
+                # print(f"Concatenated string: {concatenated_text}")
 
-                    # Проверяем, есть ли разрешенные команды в тексте
-                    for command in allowed_commands:
-                        if command.lower() in concatenated_text.lower():
-                            if command == "ручки" or command == "лапки":
-                                result = await self.regex_extractor.extract_help_command(concatenated_text)
-                            elif command == "пехи":
-                                result = await self.regex_extractor.extract_rally_command(concatenated_text)
-                            else:
-                                result = None
+                # Проверяем, есть ли разрешенные команды в тексте
+                for command in allowed_commands:
+                    if command.lower() in concatenated_text:
+                        if command == "ручки" or command == "лапки":
+                            result = await self.regex_extractor.extract_help_command(concatenated_text)
+                        elif command == "пехи":
+                            result = await self.regex_extractor.extract_rally_command(concatenated_text)
+                        else:
+                            result = None
 
-                            if result:
-                                await device_queues['command_queue'].put({'text': result})
-                                print(f"Text-command put in queue for device {device.serial}: {result}")
-                                print(
-                                    f"Number of text-commands in queue for device {device.serial}: {device_queues['command_queue'].qsize()}")
+                        if result:
+                            await device_queues['command_queue'].put({'text': result})
+                            print(f"Text-command put in queue for device {device.serial}: {result}")
+                            print(
+                                f"Number of text-commands in queue for device {device.serial}: {device_queues['command_queue'].qsize()}")
 
-    def crop_image(self, image: Image) -> (Image, Image):
+    async def crop_image(self, image: Image) -> (Image, Image):
         cropped_image_1 = image.crop(
             (self.top_left_1[0], self.top_left_1[1], self.bottom_right_1[0], self.bottom_right_1[1]))
         cropped_image_2 = image.crop(
@@ -130,7 +135,7 @@ class ImageReader:
 
         return cropped_image_1, cropped_image_2
 
-    def calculate_roi_dimensions(self):
+    async def calculate_roi_dimensions(self):
         if self.roi_config:
             x = self.roi_config['x']
             y = self.roi_config['y']
@@ -151,7 +156,7 @@ class ImageReader:
 
         # Загрузка общих параметров конфигурации
         self.roi_config = self.config_obj.get('roi')
-        self.calculate_roi_dimensions()
+        await self.calculate_roi_dimensions()
 
         # Загрузка команд для каждого устройства
         devices_config = self.config_obj.get('devices', {})
