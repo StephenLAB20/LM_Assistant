@@ -31,6 +31,8 @@ class ImageReader:
         await self.apply_config()
         self.reader = easyocr.Reader(self.lang)
         self.regex_extractor = RegexExtractor()
+        # TODO allowed commands dict
+        self.allowed_commands = None
 
         # Собираем все очереди от устройств
         for device in devices:
@@ -56,9 +58,6 @@ class ImageReader:
                 with Image.open(io.BytesIO(await device.screencap())) as img:
                     cropped_images = await self.crop_image(img)
 
-                # img = Image.open(io.BytesIO(self.screenshot))
-                # cropped_images = self.crop_image(img)
-
                 # Добавляем обрезанные изображения в очередь
                 await device_queues['cropped_images_queue'].put(cropped_images)
 
@@ -70,41 +69,38 @@ class ImageReader:
             await asyncio.sleep(1)  # Ждем 1 секунду между итерациями
 
             try:
-                if 'cropped_images_queue' in device_queues and not device_queues['cropped_images_queue'].empty():
-                    # Получаем кортеж изображений из очереди
-                    cropped_images = await device_queues['cropped_images_queue'].get()
+                # Получаем кортеж изображений из очереди
+                cropped_images = await device_queues['cropped_images_queue'].get()
 
-                    # Проходим в цикле по изображениям и конвертируем их в массивы NumPy
-                    extracted_text = []
-                    for img in cropped_images:
-                        img_np = np.array(img)
+                # Проходим в цикле по изображениям и конвертируем их в массивы NumPy
+                extracted_text = []
+                for img in cropped_images:
+                    img_np = np.array(img)
 
-                        # Извлекаем текст из каждого изображения
-                        text = self.reader.readtext(img_np, detail=0)
-                        extracted_text.append(text)
+                    # Извлекаем текст из каждого изображения
+                    text = self.reader.readtext(img_np, detail=0)
+                    extracted_text.append(text)
 
-                    # Распознанный текст возвращается как кортеж в extracted_text
-                    extracted_text_tuple = tuple(extracted_text)
+                # Распознанный текст возвращается как кортеж в extracted_text
+                extracted_text_tuple = tuple(extracted_text)
 
-                    # Добавляем extracted_text в очередь extracted_text_queue
-                    await device_queues['extracted_text_queue'].put(extracted_text_tuple)
+                # Добавляем extracted_text в очередь extracted_text_queue
+                await device_queues['extracted_text_queue'].put(extracted_text_tuple)
 
             except Exception as e:
                 print(f"An error occurred while processing cropped images for device {device.serial}: {e}")
 
     async def process_extracted_text(self, device, device_queues):
         # Обработка команд в тексте
+        # TODO allowed commands dict
         allowed_commands = self.allowed_commands.get(device.serial, [])  # Получаем разрешенные команды для устройства
 
         while True:
             await asyncio.sleep(1)  # Небольшая задержка для снижения нагрузки
+
+            # TODO extracted_text dict
             # Получаем кортеж текстов из очереди
             extracted_text = await device_queues['extracted_text_queue'].get()
-
-            # Проверяем наличие очереди и её не пустоту
-            # if 'extracted_text_queue' in device_queues and not device_queues['extracted_text_queue'].empty():
-            #     # Получаем кортеж текстов из очереди
-            #     extracted_text = await device_queues['extracted_text_queue'].get()
 
             # Обработка каждой строки текста
             for text_line in extracted_text:
@@ -113,7 +109,7 @@ class ImageReader:
 
                 # Проверяем, есть ли разрешенные команды в тексте
                 for command in allowed_commands:
-                    if command.lower() in concatenated_text:
+                    if command in concatenated_text:
                         if command == "ручки" or command == "лапки":
                             result = await self.regex_extractor.extract_help_command(concatenated_text)
                         elif command == "пехи":
@@ -127,7 +123,7 @@ class ImageReader:
                             print(
                                 f"Number of text-commands in queue for device {device.serial}: {device_queues['command_queue'].qsize()}")
 
-    async def crop_image(self, image: Image) -> (Image, Image):
+    def crop_image(self, image: Image) -> (Image, Image):
         cropped_image_1 = image.crop(
             (self.top_left_1[0], self.top_left_1[1], self.bottom_right_1[0], self.bottom_right_1[1]))
         cropped_image_2 = image.crop(
@@ -135,7 +131,7 @@ class ImageReader:
 
         return cropped_image_1, cropped_image_2
 
-    async def calculate_roi_dimensions(self):
+    def calculate_roi_dimensions(self):
         if self.roi_config:
             x = self.roi_config['x']
             y = self.roi_config['y']
@@ -156,7 +152,7 @@ class ImageReader:
 
         # Загрузка общих параметров конфигурации
         self.roi_config = self.config_obj.get('roi')
-        await self.calculate_roi_dimensions()
+        self.calculate_roi_dimensions()
 
         # Загрузка команд для каждого устройства
         devices_config = self.config_obj.get('devices', {})
