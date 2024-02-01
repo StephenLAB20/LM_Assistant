@@ -36,8 +36,8 @@ class RegexExtractor:
                 return 'ручки', 40
 
             # Условие 3: Если цифра меньше 10, устанавливаем цифру 10
-            # if 0 <= quantity < 10:
-            #     return 'ручки', 10
+            if 0 <= quantity < 10:
+                return 'ручки', 10
 
             # В противном случае, возвращаем цифру как есть
             return 'ручки', quantity

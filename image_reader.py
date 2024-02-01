@@ -32,7 +32,7 @@ class ImageReader:
         self.reader = easyocr.Reader(self.lang)
         self.regex_extractor = RegexExtractor()
         # TODO allowed commands dict
-        self.allowed_commands = None
+        # self.allowed_commands = None
 
         # Собираем все очереди от устройств
         for device in devices:
@@ -123,7 +123,7 @@ class ImageReader:
                             print(
                                 f"Number of text-commands in queue for device {device.serial}: {device_queues['command_queue'].qsize()}")
 
-    def crop_image(self, image: Image) -> (Image, Image):
+    async def crop_image(self, image: Image) -> (Image, Image):
         cropped_image_1 = image.crop(
             (self.top_left_1[0], self.top_left_1[1], self.bottom_right_1[0], self.bottom_right_1[1]))
         cropped_image_2 = image.crop(
