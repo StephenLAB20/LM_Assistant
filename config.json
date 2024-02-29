@@ -36,8 +36,10 @@
         ]
       }
     },
-    "emulator-5500": {
+    "emulator-5564": {
       "commands": [
+        "ручки",
+        "лапки"
       ]
     },
     "emulator-5501": {

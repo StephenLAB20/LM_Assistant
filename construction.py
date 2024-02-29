@@ -28,13 +28,6 @@ class Construction:
                 # Добавление в словарь
                 self.image_info[image_name] = {'template': template, 'coord': None}
 
-    async def check_warning(self):
-        await self.click_loupe_icon()
-        await self.click_farm_icon()
-        await self.click_primary_upgrade_btn()
-        is_warning_clicked = await self.click_warning_icon()
-        return is_warning_clicked
-
     async def apply_equipment(self):
         await self.click_warning_change_btn()
         is_equipped = await self.click_construction_equip_btn()
@@ -47,26 +40,22 @@ class Construction:
         return is_prepared
 
     async def process_help_command(self):
-        # is_equipped = False
-        #
-        # while not is_equipped:
-        #     is_warning_clicked = await self.check_warning()
-        #
-        #     if is_warning_clicked:
-        #         is_equipped = await self.apply_equipment()
-        #     else:
-        #         is_equipped = True
-
-        # new algorithm without changing equipment
         print(f"Preparing construction for {self.device.serial}")
         is_prepared = False
         while not is_prepared:
             is_prepared = await self.prepare_construction()
 
-        # while not await self.check_equipment():
-        #     await self.apply_equipment()
+        # TODO modified algorythm
+        # Leave if changing equipment needed
+        is_equipped = False
+        while not is_equipped:
+            is_warning_clicked = await self.click_warning_icon()
+            if is_warning_clicked:
+                is_equipped = await self.apply_equipment()
+            else:
+                is_equipped = True
 
-        await self.execute_help_command()
+        await self.execute_help_command(is_equipped)
         print(f"Construction finished for {self.device.serial}")
 
     async def click_loupe_icon(self):
@@ -430,25 +419,26 @@ class Construction:
             self.image_info[template_name]['coord'] = coord
         return coord
 
-    async def process_help_algorithm(self):
+    async def process_help_algorithm(self, is_equipped):
         await self.click_secondary_upgrade_btn()
-        await self.click_instant_upgrade_btn()
+        if not is_equipped:
+            await self.click_instant_upgrade_btn()
         await self.click_help_btn()
         await self.click_cancel_btn()
         is_finished = await self.click_confirm_cancel_btn()
         return is_finished
 
-    async def execute_help_command(self):
+    async def execute_help_command(self, is_equipped):
         print(f"Start executing help command for device {self.device.serial}...")
         is_finished = False
 
         for i in range(self.count + 1):
             print(f"Executing help command for device {self.device.serial}..........{i}")
-            is_finished = await self.process_help_algorithm()
+            is_finished = await self.process_help_algorithm(is_equipped)
 
         while not is_finished:
             print(f"Ensuring completion of process_help_algorithm() for {self.device.serial}")
-            await self.process_help_algorithm()
+            is_finished = await self.process_help_algorithm(is_equipped)
         await self.click_exit_btn()
 
     async def start(self):
